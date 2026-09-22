@@ -23,10 +23,14 @@ Building out what those placeholder routes actually *do* remains later steps.
 
 ## Routes
 
-- `GET /login` — renders the sign-in form — public (already exists, unchanged)
+- `GET /login` — renders the sign-in form — public (already exists, unchanged
+  for anonymous visitors; now redirects to `/<user_id>` if already signed in)
 - `POST /login` — validates credentials, starts a session on success,
   redirects to `/<user_id>`, re-renders the form with an error on failure —
   public (new handler on the existing route)
+- `GET /register` — renders the registration form — public for anonymous
+  visitors; now redirects to `/<user_id>` if already signed in (unchanged
+  otherwise from Step 2)
 - `GET /<int:user_id>` — renders the landing page for a signed-in user;
   redirects to `/login` if the id doesn't match the current session — logged-in
   (new variant of the existing `GET /` route, same view function)
@@ -72,6 +76,10 @@ against `database/db.py`.
     `/profile`, `/expenses/add`, `/expenses/<id>/edit`,
     `/expenses/<id>/delete`. Their existing placeholder return values are
     otherwise untouched.
+  - Add a guard at the top of `login()` and `register()` that redirects an
+    already-authenticated visitor (`session.get("user_id")` set) straight to
+    `/<user_id>`, so a signed-in user can't navigate back to either form —
+    only `/logout` clears the session and makes them reachable again.
 - `templates/base.html` — conditional navbar block described above.
 
 ## Files to create
@@ -129,5 +137,8 @@ Flask already.
       logged out redirects to `/login` instead of showing the placeholder text
 - [ ] Visiting `/profile` (or any `/expenses/*` placeholder route) while
       logged in still shows its existing placeholder text
+- [ ] While logged in, visiting `/login` or `/register` redirects to
+      `/<user_id>` instead of rendering either form
+- [ ] After `/logout`, `/login` and `/register` render their forms again
 - [ ] No unhandled exceptions/500s for any of the above cases
 - [ ] App still starts cleanly via `python app.py`
