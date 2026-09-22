@@ -80,6 +80,11 @@ against `database/db.py`.
     already-authenticated visitor (`session.get("user_id")` set) straight to
     `/<user_id>`, so a signed-in user can't navigate back to either form —
     only `/logout` clears the session and makes them reachable again.
+  - Add an `after_request` hook that sets `Cache-Control: no-store` (and
+    `Pragma: no-cache`) on every non-static response, so the browser's
+    back/forward button can't show a stale cached page (e.g. a page from
+    before logout, or a 404 for a nonexistent URL) without re-hitting the
+    server — that would bypass every session check above.
 - `templates/base.html` — conditional navbar block described above.
 
 ## Files to create
@@ -140,5 +145,7 @@ Flask already.
 - [ ] While logged in, visiting `/login` or `/register` redirects to
       `/<user_id>` instead of rendering either form
 - [ ] After `/logout`, `/login` and `/register` render their forms again
+- [ ] Any dynamic page response (including a 404 for an unknown URL) carries
+      `Cache-Control: no-store`; `/static/*` responses are unaffected
 - [ ] No unhandled exceptions/500s for any of the above cases
 - [ ] App still starts cleanly via `python app.py`

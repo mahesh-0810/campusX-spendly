@@ -31,6 +31,19 @@ def login_required(view):
     return wrapped_view
 
 
+@app.after_request
+def add_no_cache_headers(response):
+    # Without this, the browser's back/forward button can show a stale
+    # cached page (e.g. a page from before logout, or before a redirect)
+    # without ever hitting the server, bypassing our session checks.
+    # Forcing revalidation means "back" always re-requests, so redirects
+    # (login_required, the already-logged-in guard, 404s, etc.) run again.
+    if not request.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+    return response
+
+
 # ------------------------------------------------------------------ #
 # Routes                                                              #
 # ------------------------------------------------------------------ #
