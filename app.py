@@ -3,6 +3,8 @@ import os
 import re
 import sqlite3
 
+from datetime import datetime
+
 from flask import Flask, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -29,6 +31,11 @@ def login_required(view):
             return redirect(url_for("login"))
         return view(*args, **kwargs)
     return wrapped_view
+
+
+def format_member_since(created_at):
+    dt = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
+    return dt.strftime("%B %d, %Y")
 
 
 # ------------------------------------------------------------------ #
@@ -144,10 +151,102 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/profile")
+@app.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
-    return "Profile page — coming in Step 4"
+    conn = get_db()
+    try:
+        user = conn.execute(
+            "SELECT id, name, email, created_at FROM users WHERE id = ?",
+            (session["user_id"],),
+        ).fetchone()
+        member_since = format_member_since(user["created_at"])
+
+        if request.method == "GET":
+            return render_template(
+                "profile.html",
+                name=user["name"], email=user["email"], member_since=member_since,
+            )
+
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+
+        if not name:
+            return render_template("profile.html", name=name, email=email,
+                                    member_since=member_since, info_error="Name is required.")
+        if not email:
+            return render_template("profile.html", name=name, email=email,
+                                    member_since=member_since, info_error="Email is required.")
+        if not EMAIL_RE.match(email):
+            return render_template("profile.html", name=name, email=email,
+                                    member_since=member_since, info_error="Enter a valid email address.")
+
+        existing = conn.execute(
+            "SELECT id FROM users WHERE LOWER(email) = ? AND id != ?",
+            (email, session["user_id"]),
+        ).fetchone()
+        if existing:
+            return render_template("profile.html", name=name, email=email, member_since=member_since,
+                                    info_error="An account with that email already exists.")
+
+        try:
+            conn.execute("UPDATE users SET name = ?, email = ? WHERE id = ?",
+                         (name, email, session["user_id"]))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            return render_template("profile.html", name=name, email=email, member_since=member_since,
+                                    info_error="An account with that email already exists.")
+
+        session["user_name"] = name
+        return render_template("profile.html", name=name, email=email, member_since=member_since,
+                                info_success="Your details have been updated.")
+    finally:
+        conn.close()
+
+
+@app.route("/profile/password", methods=["POST"])
+@login_required
+def change_password():
+    conn = get_db()
+    try:
+        user = conn.execute(
+            "SELECT id, name, email, password_hash, created_at FROM users WHERE id = ?",
+            (session["user_id"],),
+        ).fetchone()
+        name, email = user["name"], user["email"]
+        member_since = format_member_since(user["created_at"])
+
+        current_password = request.form.get("current_password", "")
+        new_password = request.form.get("new_password", "")
+        confirm_new_password = request.form.get("confirm_new_password", "")
+
+        if not current_password:
+            return render_template("profile.html", name=name, email=email, member_since=member_since,
+                                    password_error="Current password is required.")
+        if not check_password_hash(user["password_hash"], current_password):
+            return render_template("profile.html", name=name, email=email, member_since=member_since,
+                                    password_error="Current password is incorrect.")
+        if not new_password:
+            return render_template("profile.html", name=name, email=email, member_since=member_since,
+                                    password_error="New password is required.")
+        if not confirm_new_password:
+            return render_template("profile.html", name=name, email=email, member_since=member_since,
+                                    password_error="Confirm new password is required.")
+        if len(new_password) < 8:
+            return render_template("profile.html", name=name, email=email, member_since=member_since,
+                                    password_error="Password must be at least 8 characters.")
+        if new_password != confirm_new_password:
+            return render_template("profile.html", name=name, email=email, member_since=member_since,
+                                    password_error="Passwords do not match.")
+
+        conn.execute("UPDATE users SET password_hash = ? WHERE id = ?",
+                     (generate_password_hash(new_password), session["user_id"]))
+        conn.commit()
+
+        return render_template("profile.html", name=name, email=email, member_since=member_since,
+                                password_success="Your password has been updated.")
+    finally:
+        conn.close()
 
 
 @app.route("/expenses/add")
