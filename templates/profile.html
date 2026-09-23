@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Your profile — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="auth-section">
+    <div class="auth-container">
+
+        <div class="auth-header">
+            <h1 class="auth-title">Your profile</h1>
+            <p class="auth-subtitle">Manage your account details and password</p>
+        </div>
+
+        <div class="auth-card">
+            <p class="profile-meta">Member since {{ member_since }}</p>
+
+            {% if info_error %}
+            <div class="auth-error">{{ info_error }}</div>
+            {% endif %}
+            {% if info_success %}
+            <div class="auth-success">{{ info_success }}</div>
+            {% endif %}
+
+            <form method="POST" action="/profile">
+                <div class="form-group">
+                    <label for="name">Full name</label>
+                    <input type="text" id="name" name="name"
+                           class="form-input" value="{{ name }}"
+                           required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <input type="email" id="email" name="email"
+                           class="form-input" value="{{ email }}"
+                           required>
+                </div>
+                <button type="submit" class="btn-submit">Save changes</button>
+            </form>
+        </div>
+
+        <div class="auth-card">
+            <h2 class="auth-card-title">Change password</h2>
+
+            {% if password_error %}
+            <div class="auth-error">{{ password_error }}</div>
+            {% endif %}
+            {% if password_success %}
+            <div class="auth-success">{{ password_success }}</div>
+            {% endif %}
+
+            <form method="POST" action="/profile/password">
+                <div class="form-group">
+                    <label for="current_password">Current password</label>
+                    <input type="password" id="current_password" name="current_password"
+                           class="form-input" placeholder="Your current password"
+                           required>
+                </div>
+                <div class="form-group">
+                    <label for="new_password">New password</label>
+                    <input type="password" id="new_password" name="new_password"
+                           class="form-input" placeholder="At least 8 characters"
+                           required>
+                </div>
+                <div class="form-group">
+                    <label for="confirm_new_password">Confirm new password</label>
+                    <input type="password" id="confirm_new_password" name="confirm_new_password"
+                           class="form-input" placeholder="Re-enter new password"
+                           required>
+                </div>
+                <button type="submit" class="btn-submit">Update password</button>
+            </form>
+        </div>
+
+        <p class="auth-switch">
+            <a href="{{ url_for('landing', user_id=session['user_id']) }}">Back to dashboard</a>
+        </p>
+
+    </div>
+</section>
+
+{% endblock %}
