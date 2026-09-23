@@ -31,7 +31,7 @@ Nothing — this is the first step.
 
 | Column | Type | Constraints |
 | --- | --- | --- |
-| id | INTEGER | Primary key, autoincrement |
+| id | TEXT | Primary key — random 8-byte hex string (`secrets.token_hex(8)`), generated in Python before insert |
 | name | TEXT | Not null |
 | email | TEXT | Unique, not null |
 | password_hash | TEXT | Not null |
@@ -44,7 +44,7 @@ Nothing — this is the first step.
 | Column | Type | Constraints |
 | --- | --- | --- |
 | id | INTEGER | Primary key, autoincrement |
-| user_id | INTEGER | Foreign key → users.id, not null |
+| user_id | TEXT | Foreign key → users.id, not null |
 | amount | REAL | Not null |
 | category | TEXT | Not null |
 | date | TEXT | Not null (YYYY-MM-DD format) |
@@ -67,7 +67,15 @@ Nothing — this is the first step.
 
 ---
 
-### B. `init_db()`
+### B. `generate_user_id()`
+
+- Returns a random 8-byte hex string (`secrets.token_hex(8)`, 16 characters) for use as a new user's `id`
+- Called explicitly before every `users` insert (`register()` in `app.py`, `seed_db()` below) — the id is generated in Python and passed into the `INSERT`, never read back via `cursor.lastrowid`. This matters because `users.id` is `TEXT PRIMARY KEY`, not `INTEGER PRIMARY KEY`, so SQLite still tracks a separate internal rowid that `lastrowid` would return instead of the actual id value stored
+- No collision-retry logic — 64 bits of randomness makes a collision unrealistic at this project's scale, and the `PRIMARY KEY` constraint is the backstop if it ever happened
+
+---
+
+### C. `init_db()`
 
 - Creates both tables using `CREATE TABLE IF NOT EXISTS`
 - Safe to call multiple times
@@ -75,11 +83,12 @@ Nothing — this is the first step.
 
 ---
 
-### C. `seed_db()`
+### D. `seed_db()`
 
 - Checks if `users` table already contains data
     - If yes → return early (no duplication)
 - Inserts one demo user:
+    - id: generated via `generate_user_id()`
     - name: Demo User
     - email: demo@spendly.com
     - password: demo123 (hashed using `werkzeug`)
@@ -94,6 +103,7 @@ Nothing — this is the first step.
 ## 6. Changes to `app.py`
 
 - Import:
+    - `generate_user_id`
     - `get_db`
     - `init_db`
     - `seed_db`

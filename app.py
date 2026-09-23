@@ -8,7 +8,7 @@ from datetime import datetime
 from flask import Flask, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from database.db import get_db, init_db, seed_db
+from database.db import generate_user_id, get_db, init_db, seed_db
 
 app = Flask(__name__)
 
@@ -38,16 +38,42 @@ def format_member_since(created_at):
     return dt.strftime("%B %d, %Y")
 
 
+def get_transactions(conn, user_id):
+    """Return this user's expenses, most recent date first."""
+    query = (
+        "SELECT id, amount, category, date, description FROM expenses "
+        "WHERE user_id = ? ORDER BY date DESC, id DESC"
+    )
+    return conn.execute(query, (user_id,)).fetchall()
+
+
 # ------------------------------------------------------------------ #
 # Routes                                                              #
 # ------------------------------------------------------------------ #
 
 @app.route("/")
-@app.route("/<int:user_id>")
+@app.route("/<user_id>")
 def landing(user_id=None):
-    if user_id is not None and session.get("user_id") != user_id:
+    if user_id is None:
+        if session.get("user_id"):
+            return redirect(url_for("landing", user_id=session["user_id"]))
+        return render_template("landing.html")
+
+    if session.get("user_id") != user_id:
         return redirect(url_for("login"))
-    return render_template("landing.html")
+
+    conn = get_db()
+    try:
+        transactions = get_transactions(conn, user_id)
+        stats = get_summary_stats(conn, user_id)
+        categories = get_category_breakdown(conn, user_id)
+    finally:
+        conn.close()
+
+    return render_template(
+        "dashboard.html",
+        transactions=transactions, stats=stats, categories=categories,
+    )
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -87,10 +113,11 @@ def register():
             return render_template("register.html", error="An account with that email already exists.")
 
         password_hash = generate_password_hash(password)
+        user_id = generate_user_id()
         try:
             conn.execute(
-                "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-                (name, email, password_hash),
+                "INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)",
+                (user_id, name, email, password_hash),
             )
             conn.commit()
         except sqlite3.IntegrityError:
@@ -131,6 +158,16 @@ def login():
     return redirect(url_for("landing", user_id=user["id"]))
 
 
+def get_summary_stats(conn, user_id):
+    """Return {'total': float, 'count': int} for this user's expenses."""
+    row = conn.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS count "
+        "FROM expenses WHERE user_id = ?",
+        (user_id,),
+    ).fetchone()
+    return {"total": row["total"], "count": row["count"]}
+
+
 @app.route("/terms")
 def terms():
     return render_template("terms.html")
@@ -139,6 +176,15 @@ def terms():
 @app.route("/privacy")
 def privacy():
     return render_template("privacy.html")
+
+
+def get_category_breakdown(conn, user_id):
+    """Return per-category totals for this user, highest spend first."""
+    query = """
+        SELECT category, COALESCE(SUM(amount), 0) AS total FROM expenses
+        WHERE user_id = ? GROUP BY category ORDER BY total DESC
+    """
+    return conn.execute(query, (user_id,)).fetchall()
 
 
 # ------------------------------------------------------------------ #
