@@ -38,13 +38,18 @@ def format_member_since(created_at):
     return dt.strftime("%B %d, %Y")
 
 
-def get_transactions(conn, user_id):
+def get_transactions(conn, user_id, start_date=None, end_date=None):
     """Return this user's expenses, most recent date first."""
-    query = (
-        "SELECT id, amount, category, date, description FROM expenses "
-        "WHERE user_id = ? ORDER BY date DESC, id DESC"
-    )
-    return conn.execute(query, (user_id,)).fetchall()
+    query = "SELECT id, amount, category, date, description FROM expenses WHERE user_id = ?"
+    params = [user_id]
+    if start_date:
+        query += " AND date >= ?"
+        params.append(start_date)
+    if end_date:
+        query += " AND date <= ?"
+        params.append(end_date)
+    query += " ORDER BY date DESC, id DESC"
+    return conn.execute(query, params).fetchall()
 
 
 # ------------------------------------------------------------------ #
@@ -62,17 +67,41 @@ def landing(user_id=None):
     if session.get("user_id") != user_id:
         return redirect(url_for("login"))
 
+    start_date = request.args.get("start_date", "").strip()
+    end_date = request.args.get("end_date", "").strip()
+    filter_error = None
+
+    if start_date:
+        try:
+            datetime.strptime(start_date, "%Y-%m-%d")
+        except ValueError:
+            filter_error = "Enter valid dates in YYYY-MM-DD format."
+    if end_date and not filter_error:
+        try:
+            datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+            filter_error = "Enter valid dates in YYYY-MM-DD format."
+    if not filter_error and start_date and end_date and start_date > end_date:
+        filter_error = "Start date must be on or before end date."
+
+    if filter_error:
+        start_date, end_date = None, None
+    else:
+        start_date = start_date or None
+        end_date = end_date or None
+
     conn = get_db()
     try:
-        transactions = get_transactions(conn, user_id)
-        stats = get_summary_stats(conn, user_id)
-        categories = get_category_breakdown(conn, user_id)
+        transactions = get_transactions(conn, user_id, start_date, end_date)
+        stats = get_summary_stats(conn, user_id, start_date, end_date)
+        categories = get_category_breakdown(conn, user_id, start_date, end_date)
     finally:
         conn.close()
 
     return render_template(
         "dashboard.html",
         transactions=transactions, stats=stats, categories=categories,
+        start_date=start_date, end_date=end_date, filter_error=filter_error,
     )
 
 
@@ -158,13 +187,17 @@ def login():
     return redirect(url_for("landing", user_id=user["id"]))
 
 
-def get_summary_stats(conn, user_id):
+def get_summary_stats(conn, user_id, start_date=None, end_date=None):
     """Return {'total': float, 'count': int} for this user's expenses."""
-    row = conn.execute(
-        "SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS count "
-        "FROM expenses WHERE user_id = ?",
-        (user_id,),
-    ).fetchone()
+    query = "SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS count FROM expenses WHERE user_id = ?"
+    params = [user_id]
+    if start_date:
+        query += " AND date >= ?"
+        params.append(start_date)
+    if end_date:
+        query += " AND date <= ?"
+        params.append(end_date)
+    row = conn.execute(query, params).fetchone()
     return {"total": row["total"], "count": row["count"]}
 
 
@@ -178,13 +211,18 @@ def privacy():
     return render_template("privacy.html")
 
 
-def get_category_breakdown(conn, user_id):
+def get_category_breakdown(conn, user_id, start_date=None, end_date=None):
     """Return per-category totals for this user, highest spend first."""
-    query = """
-        SELECT category, COALESCE(SUM(amount), 0) AS total FROM expenses
-        WHERE user_id = ? GROUP BY category ORDER BY total DESC
-    """
-    return conn.execute(query, (user_id,)).fetchall()
+    query = "SELECT category, COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ?"
+    params = [user_id]
+    if start_date:
+        query += " AND date >= ?"
+        params.append(start_date)
+    if end_date:
+        query += " AND date <= ?"
+        params.append(end_date)
+    query += " GROUP BY category ORDER BY total DESC"
+    return conn.execute(query, params).fetchall()
 
 
 # ------------------------------------------------------------------ #

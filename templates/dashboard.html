@@ -40,6 +40,31 @@
         </div>
 
         <div class="dashboard-block">
+            <h2 class="dashboard-block-title">Filter transactions</h2>
+
+            {% if filter_error %}
+            <div class="auth-error">{{ filter_error }}</div>
+            {% endif %}
+
+            <form method="get" action="{{ url_for('landing', user_id=session['user_id']) }}" class="dashboard-filter-form">
+                <div class="dashboard-filter-field">
+                    <label for="start_date">From</label>
+                    <input type="date" id="start_date" name="start_date"
+                           class="form-input" value="{{ start_date or '' }}">
+                </div>
+                <div class="dashboard-filter-field">
+                    <label for="end_date">To</label>
+                    <input type="date" id="end_date" name="end_date"
+                           class="form-input" value="{{ end_date or '' }}">
+                </div>
+                <button type="submit" class="btn-primary dashboard-filter-apply">Apply</button>
+                {% if start_date or end_date %}
+                <a href="{{ url_for('landing', user_id=session['user_id']) }}" class="dashboard-filter-clear">Clear filter</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="dashboard-block">
             <h2 class="dashboard-block-title">Recent transactions</h2>
             {% if transactions %}
             <ul class="expense-list">
