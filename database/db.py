@@ -1,4 +1,5 @@
 import os
+import secrets
 import sqlite3
 
 from datetime import date
@@ -18,12 +19,23 @@ def get_db():
     return conn
 
 
+def generate_user_id():
+    """Random 8-byte (16 hex char) primary key for users.
+
+    Generated in Python, not read back via cursor.lastrowid: since users.id
+    is TEXT rather than INTEGER PRIMARY KEY, SQLite still tracks an internal
+    rowid separate from the id column's actual value, so lastrowid would
+    return that meaningless internal number instead of the id we stored.
+    """
+    return secrets.token_hex(8)
+
+
 def init_db():
     conn = get_db()
     try:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
@@ -33,7 +45,7 @@ def init_db():
         conn.execute("""
             CREATE TABLE IF NOT EXISTS expenses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                user_id TEXT NOT NULL,
                 amount REAL NOT NULL,
                 category TEXT NOT NULL,
                 date TEXT NOT NULL,
@@ -54,11 +66,11 @@ def seed_db():
             return  # already seeded
 
         password_hash = generate_password_hash("demo123")
-        cursor = conn.execute(
-            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-            ("Demo User", "demo@spendly.com", password_hash),
+        user_id = generate_user_id()
+        conn.execute(
+            "INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)",
+            (user_id, "Demo User", "demo@spendly.com", password_hash),
         )
-        user_id = cursor.lastrowid
 
         # day-of-month capped at 21 so it's valid in every month (incl. Feb)
         first_of_month = date.today().replace(day=1)

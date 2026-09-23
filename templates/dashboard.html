@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="dashboard-section">
+    <div class="dashboard-container">
+
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Welcome back, {{ session['user_name'] }}</h1>
+            <a href="{{ url_for('add_expense') }}" class="btn-primary">Add expense</a>
+        </div>
+
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <span class="stat-value">₹{{ '%.2f' % stats['total'] }}</span>
+                <span class="stat-label">Total spent</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ stats['count'] }}</span>
+                <span class="stat-label">Transactions</span>
+            </div>
+        </div>
+
+        <div class="dashboard-block">
+            <h2 class="dashboard-block-title">Spending by category</h2>
+            {% if categories %}
+            <ul class="category-breakdown">
+                {% for c in categories %}
+                <li class="category-row">
+                    <span class="category-name">{{ c['category'] }}</span>
+                    <span class="category-amount">₹{{ '%.2f' % c['total'] }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty-state">No spending yet — add your first expense to see a breakdown.</p>
+            {% endif %}
+        </div>
+
+        <div class="dashboard-block">
+            <h2 class="dashboard-block-title">Recent transactions</h2>
+            {% if transactions %}
+            <ul class="expense-list">
+                {% for e in transactions %}
+                <li class="expense-row">
+                    <span class="expense-date">{{ e['date'] }}</span>
+                    <span class="expense-category">{{ e['category'] }}</span>
+                    <span class="expense-desc">{{ e['description'] }}</span>
+                    <span class="expense-amount">₹{{ '%.2f' % e['amount'] }}</span>
+                    <span class="expense-actions">
+                        <a href="{{ url_for('edit_expense', id=e['id']) }}">Edit</a>
+                        <a href="{{ url_for('delete_expense', id=e['id']) }}">Delete</a>
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty-state">No expenses yet — add your first one.</p>
+            {% endif %}
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

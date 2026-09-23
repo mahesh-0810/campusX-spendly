@@ -548,6 +548,154 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ------------------------------------------------------------------ */
+/* Dashboard                                                            */
+/* ------------------------------------------------------------------ */
+
+.dashboard-section {
+    min-height: calc(100vh - 60px - 100px);
+    padding: 3rem 2rem;
+}
+
+.dashboard-container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.dashboard-title {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    color: var(--ink);
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+}
+
+.stat-card {
+    background: var(--paper-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.stat-value {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    color: var(--ink);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--ink-muted);
+}
+
+.dashboard-block {
+    background: var(--paper-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-block-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: var(--ink);
+    margin-bottom: 1.25rem;
+}
+
+.category-breakdown, .expense-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.category-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.category-row:last-child { border-bottom: none; }
+
+.category-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+}
+
+.category-amount {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.expense-row {
+    display: grid;
+    grid-template-columns: 100px 120px 1fr 100px auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.expense-row:last-child { border-bottom: none; }
+
+.expense-date, .expense-category {
+    font-size: 0.85rem;
+    color: var(--ink-muted);
+}
+
+.expense-desc {
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+}
+
+.expense-amount {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: right;
+}
+
+.expense-actions {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.expense-actions a {
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.expense-actions a:hover { text-decoration: underline; }
+
+.empty-state {
+    font-size: 0.9rem;
+    color: var(--ink-muted);
+    text-align: center;
+    padding: 1.5rem 0;
+}
+
+/* ------------------------------------------------------------------ */
 /* Footer                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -687,6 +835,8 @@ a { color: inherit; text-decoration: none; }
     .mock-stats { grid-template-columns: 1fr; }
 
     .features-inner { grid-template-columns: 1fr; }
+
+    .dashboard-stats { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 600px) {
@@ -694,4 +844,18 @@ a { color: inherit; text-decoration: none; }
     .hero { padding: 3rem 1rem 2rem; }
     .hero-actions { flex-direction: column; width: 100%; }
     .hero-actions .btn-primary { width: 100%; text-align: center; }
+
+    .dashboard-header { flex-direction: column; align-items: flex-start; }
+    .expense-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "date category"
+            "desc desc"
+            "amount actions";
+    }
+    .expense-date { grid-area: date; }
+    .expense-category { grid-area: category; }
+    .expense-desc { grid-area: desc; }
+    .expense-amount { grid-area: amount; text-align: left; }
+    .expense-actions { grid-area: actions; justify-content: flex-end; }
 }
