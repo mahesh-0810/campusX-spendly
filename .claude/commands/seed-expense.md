@@ -1,6 +1,6 @@
 ---
 description: Seed realistic dummy expenses for a specific user
-argument-hint: "<user_id> <count> <months>"
+argument-hint: "<user_id (hex string)> <count> <months>"
 allowed-tools: Read, Bash(python3:*)
 ---
 
@@ -13,13 +13,15 @@ User input: $ARGUMENTS
 ## Step 1 — Parse arguments
 
 Extract from $ARGUMENTS:
-- user_id — integer
+- user_id — the user's hex id string (e.g. a1b2c3d4e5f6a7b8), matching the
+  `users.id` column
 - count — integer, number of expenses to create
 - months — integer, how many past months to spread them across
 
-If any argument is missing or not a valid integer, stop and say:
+If user_id is missing, or count/months is missing or not a valid integer,
+stop and say:
 "Usage: /seed-expenses <user_id> <count> <months>
-Example: /seed-expenses 1 50 6"
+Example: /seed-expenses a1b2c3d4e5f6a7b8 50 6"
 
 ## Step 2 — Verify user exists
 

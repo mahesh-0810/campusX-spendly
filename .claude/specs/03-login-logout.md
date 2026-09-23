@@ -31,9 +31,11 @@ Building out what those placeholder routes actually *do* remains later steps.
 - `GET /register` — renders the registration form — public for anonymous
   visitors; now redirects to `/<user_id>` if already signed in (unchanged
   otherwise from Step 2)
-- `GET /<int:user_id>` — renders the landing page for a signed-in user;
+- `GET /<user_id>` — renders the landing page for a signed-in user;
   redirects to `/login` if the id doesn't match the current session — logged-in
-  (new variant of the existing `GET /` route, same view function)
+  (new variant of the existing `GET /` route, same view function; `user_id`
+  is a string — see [01-database-setup.md](01-database-setup.md) — not an
+  int-converted path segment)
 - `GET /logout` — clears the session, redirects to `/login` — logged-in
   (replaces the placeholder string response)
 - `GET /profile`, `GET /expenses/add`, `GET /expenses/<id>/edit`,
@@ -120,9 +122,10 @@ Flask already.
 - [ ] Visiting `/login` still renders the form (GET unchanged)
 - [ ] Submitting valid credentials for a real user (e.g. the seeded
       `demo@spendly.com` / `demo123`) logs in and redirects to `/<user_id>`
-      (e.g. `/1`), which renders the landing page with the navbar showing
-      "Logout" — chosen over `/profile` since that route is still a bare
-      placeholder string with no navbar until Step 4 builds it out
+      (e.g. `/a1b2c3d4e5f6a7b8`, a 16-character hex string), which renders
+      the landing page with the navbar showing "Logout" — chosen over
+      `/profile` since that route is still a bare placeholder string with
+      no navbar until Step 4 builds it out
 - [ ] Visiting `/<user_id>` for an id that doesn't match the signed-in
       user's session redirects to `/login` instead of rendering
 - [ ] Submitting an unknown email re-renders `login.html` with a generic
